@@ -11,14 +11,27 @@ A beautiful, full-featured Pomodoro Timer application built with vanilla HTML, C
 - ⚙️ **Customizable**: Adjust focus, short break, and long break durations
 - 🎨 **Modern UI**: Clean, responsive design with animated progress rings
 
-## How to Use
+## How to Run
 
-Simply Ation to the "Settings" section to customize:
-- Focus duration
-- Short break duration
-- Long break duration
+**Option 1: Direct File Open**
+1. Download or clone this repository
+2. Open `index.html` in any modern browser
+3. No server required!
 
-These settings persist across sessions using localStorage.
+**Option 2: Local Server (Recommended)**
+1. In the project directory, run:
+```bash
+python3 -m http.server 8000
+```
+2. Open your browser to: http://localhost:8000
+
+## How to Test
+
+1. **Browser Notifications**: Click the bell icon to allow notifications
+2. **Timer Functionality**: Start a timer and verify it counts down correctly
+3. **Break States**: Test transitions between focus and break modes
+4. **Settings Persistence**: Change settings and verify they're saved
+5. **Progress Ring**: Confirm the visual progress indicator animates correctly
 
 ## Browser Support
 
