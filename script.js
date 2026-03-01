@@ -1,16 +1,58 @@
-// Pomodoro Timer Application
+// Save state to localStorage
+function saveState() {
+    const state = {
+        timeLeft,
+        isRunning,
+        currentSession,
+        sessionsCompleted,
+        focusDuration,
+        shortBreakDuration,
+        longBreakDuration
+    };
+    localStorage.setItem('pomodoroState', JSON.stringify(state));
+}
 
-// State Management
-let timeLeft = 25 * 60; // Default to 25 minutes
-let timerId = null;
-let isRunning = false;
-let currentSession = 'focus'; // 'focus' or 'break'
-let sessionsCompleted = 0;
+// Load state from localStorage
+function loadState() {
+    const saved = localStorage.getItem('pomodoroState');
+    if (saved) {
+        const state = JSON.parse(saved);
+        timeLeft = state.timeLeft;
+        isRunning = state.isRunning;
+        currentSession = state.currentSession;
+        sessionsCompleted = state.sessionsCompleted;
+        focusDuration = state.focusDuration || 25;
+        shortBreakDuration = state.shortBreakDuration || 5;
+        longBreakDuration = state.longBreakDuration || 15;
+    }
+}
 
-// Durations in minutes
-let focusDuration = 25;
-let shortBreakDuration = 5;
-let longBreakDuration = 15;
+// Update settings inputs from current durations
+function updateSettingsInputs() {
+    focusDurationInput.value = focusDuration;
+    shortBreakInput.value = shortBreakDuration;
+    longBreakInput.value = longBreakDuration;
+}
+
+// Save settings
+function saveSettings() {
+    localStorage.setItem('pomodoroSettings', JSON.stringify({
+        focusDuration,
+        shortBreakDuration,
+        longBreakDuration
+    }));
+}
+
+// Load settings
+function loadSettings() {
+    const saved = localStorage.getItem('pomodoroSettings');
+    if (saved) {
+        const settings = JSON.parse(saved);
+        focusDuration = settings.focusDuration || 25;
+        shortBreakDuration = settings.shortBreakDuration || 5;
+        longBreakDuration = settings.longBreakDuration || 15;
+    }
+}
 
 // DOM Elements
 const timeLeftEl = document.getElementById('time-left');
@@ -24,9 +66,28 @@ const longBreakInput = document.getElementById('long-break');
 const ringProgress = document.querySelector('.ring-progress');
 const body = document.body;
 
+// Initialize timer state
+let timeLeft = focusDuration * 60;
+let timerId;
+let isRunning = false;
+
+// Load saved state
+loadSettings();
+loadState();
+
+// Set initial timeLeft based on current session
+if (currentSession === 'short') {
+    timeLeft = shortBreakDuration * 60;
+} else if (currentSession === 'long') {
+    timeLeft = longBreakDuration * 60;
+} else {
+    timeLeft = focusDuration * 60;
+}
+
 // Progress Ring Calculation
+const RING_RADIUS = 90;
 function setProgress(percent) {
-    const circumference = 2 * Math.PI * 90; // 90 is the radius
+    const circumference = 2 * Math.PI * RING_RADIUS;
     const offset = circumference - (percent / 100) * circumference;
     ringProgress.style.strokeDashoffset = offset;
 }
@@ -99,6 +160,7 @@ function startTimer() {
         // Pause timer
         clearInterval(timerId);
         isRunning = false;
+        saveState(); // Save state when pausing
     } else {
         // Start timer
         timerId = setInterval(() => {
@@ -123,18 +185,25 @@ function startTimer() {
 function handleTimerComplete() {
     if (currentSession === 'focus') {
         sessionsCompleted++;
-        // Switch to short break by default, long break after 4 sessions
-        currentSession = sessionsCompleted % 4 === 0 ? 'long' : 'short';
-        focusDurationInput.value = focusDuration;
+    }
+
+    // Determine next session (reset tracking for next long break cycle)
+    if (currentSession === 'focus') {
+        // After completing focus session, track to determine break type
+        // Use modulo to determine if it's long or short break
+        const breakIndex = sessionsCompleted % 4;
+        currentSession = breakIndex === 3 ? 'long' : 'short';
     } else {
         // Switch back to focus mode
         currentSession = 'focus';
+        sessionsCompleted = 0; // Reset counter for fresh cycle
     }
 
-    timeLeft = currentSession === 'break'
-        ? getCurrentBreakDuration() * 60
-        : focusDuration * 60;
+    timeLeft = currentSession === 'focus'
+        ? focusDuration * 60
+        : (currentSession === 'long' ? longBreakDuration : shortBreakDuration) * 60;
 
+    saveState();
     updateUI();
 }
 
@@ -143,6 +212,7 @@ function resetTimer() {
     clearInterval(timerId);
     isRunning = false;
     timeLeft = focusDuration * 60;
+    saveState(); // Save restored state
     updateUI();
 }
 
@@ -151,6 +221,8 @@ function handleSettingsChange() {
     focusDuration = parseInt(focusDurationInput.value) || 25;
     shortBreakDuration = parseInt(shortBreakInput.value) || 5;
     longBreakDuration = parseInt(longBreakInput.value) || 15;
+
+    saveSettings(); // Save settings
 
     // If timer is running, respect current session type duration
     if (currentSession === 'break') {
